@@ -19,6 +19,7 @@ import org.xutils.http.cookie.DbCookieStore;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.net.CookieManager;
@@ -54,8 +55,7 @@ public class HttpRequest extends UriRequest {
     private int responseCode = 0;
 
     // cookie manager
-    private static final CookieManager COOKIE_MANAGER =
-            new CookieManager(DbCookieStore.INSTANCE, CookiePolicy.ACCEPT_ALL);
+    private static final CookieManager COOKIE_MANAGER = new CookieManager(DbCookieStore.INSTANCE, CookiePolicy.ACCEPT_ALL);
 
     /*package*/ HttpRequest(RequestParams params, Type loadType) throws Throwable {
         super(params, loadType);
@@ -77,11 +77,7 @@ public class HttpRequest extends UriRequest {
                 String name = kv.key;
                 String value = kv.getValueStr();
                 if (!TextUtils.isEmpty(name) && value != null) {
-                    queryBuilder.append(
-                            Uri.encode(name, params.getCharset()))
-                            .append("=")
-                            .append(Uri.encode(value, params.getCharset()))
-                            .append("&");
+                    queryBuilder.append(Uri.encode(name, params.getCharset())).append("=").append(Uri.encode(value, params.getCharset())).append("&");
                 }
             }
         }
@@ -107,6 +103,7 @@ public class HttpRequest extends UriRequest {
         }
         return result;
     }
+
 
     /**
      * invoke via Loader
@@ -146,8 +143,7 @@ public class HttpRequest extends UriRequest {
 
         if (params.isUseCookie()) {// add cookies
             try {
-                Map<String, List<String>> singleMap =
-                        COOKIE_MANAGER.get(url.toURI(), new HashMap<String, List<String>>(0));
+                Map<String, List<String>> singleMap = COOKIE_MANAGER.get(url.toURI(), new HashMap<>(0));
                 List<String> cookies = singleMap.get("Cookie");
                 if (cookies != null) {
                     connection.setRequestProperty("Cookie", TextUtils.join(";", cookies));
@@ -216,7 +212,16 @@ public class HttpRequest extends UriRequest {
                     }
                     connection.setRequestProperty("Content-Length", String.valueOf(contentLength));
                     connection.setDoOutput(true);
-                    body.writeTo(connection.getOutputStream());
+                    OutputStream outputStream = connection.getOutputStream();
+                    try {
+                        // 该步骤从JDK1.6开始, android 5.0以下的版本使用DELETE请求会报错
+                        // Exception: deleted not support write
+                        // 建议是从服务器端改为POST请求或者GET请求取代DELETE请求.
+                        body.writeTo(outputStream);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    
                 }
             }
         }
@@ -286,9 +291,7 @@ public class HttpRequest extends UriRequest {
     @Override
     public Object loadResultFromCache() throws Throwable {
         isLoading = true;
-        DiskCacheEntity cacheEntity = LruDiskCache.getDiskCache(params.getCacheDirName())
-                .setMaxSize(params.getCacheSize())
-                .get(this.getCacheKey());
+        DiskCacheEntity cacheEntity = LruDiskCache.getDiskCache(params.getCacheDirName()).setMaxSize(params.getCacheSize()).get(this.getCacheKey());
 
         if (cacheEntity != null) {
             if (HttpMethod.permitsCache(params.getMethod())) {
@@ -316,8 +319,7 @@ public class HttpRequest extends UriRequest {
     @Override
     public InputStream getInputStream() throws IOException {
         if (connection != null && inputStream == null) {
-            inputStream = connection.getResponseCode() >= 400 ?
-                    connection.getErrorStream() : connection.getInputStream();
+            inputStream = connection.getResponseCode() >= 400 ? connection.getErrorStream() : connection.getInputStream();
         }
         return inputStream;
     }
@@ -382,7 +384,8 @@ public class HttpRequest extends UriRequest {
 
     @Override
     public long getExpiration() {
-        if (connection == null) return -1L;
+        if (connection == null)
+            return -1L;
 
         long expiration = -1L;
 
@@ -432,31 +435,34 @@ public class HttpRequest extends UriRequest {
 
     @Override
     public String getETag() {
-        if (connection == null) return null;
+        if (connection == null)
+            return null;
         return connection.getHeaderField("ETag");
     }
 
     @Override
     public String getResponseHeader(String name) {
-        if (connection == null) return null;
+        if (connection == null)
+            return null;
         return connection.getHeaderField(name);
     }
 
     @Override
     public Map<String, List<String>> getResponseHeaders() {
-        if (connection == null) return null;
+        if (connection == null)
+            return null;
         return connection.getHeaderFields();
     }
 
     @Override
     public long getHeaderFieldDate(String name, long defaultValue) {
-        if (connection == null) return defaultValue;
+        if (connection == null)
+            return defaultValue;
         return connection.getHeaderFieldDate(name, defaultValue);
     }
 
     private static String toGMTString(Date date) {
-        SimpleDateFormat sdf = new SimpleDateFormat(
-                "EEE, dd MMM y HH:mm:ss 'GMT'", Locale.US);
+        SimpleDateFormat sdf = new SimpleDateFormat("EEE, dd MMM y HH:mm:ss 'GMT'", Locale.US);
         TimeZone gmtZone = TimeZone.getTimeZone("GMT");
         sdf.setTimeZone(gmtZone);
         GregorianCalendar gc = new GregorianCalendar(gmtZone);
