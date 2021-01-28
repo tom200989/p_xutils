@@ -475,8 +475,8 @@ public class HttpTask<ResultType> extends AbsTask<ResultType> implements Progres
                 closeRequestSync();
             }
         });
-        callback.onFinished();
         callback.responseBody(request);
+        callback.onFinished();
     }
 
     private void clearRawResult() {
