@@ -1,18 +1,21 @@
 buildscript {
-    
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
+
+    ext.kotlin_version = '1.4.10' //  (为了使用 kotlin-android-extensions 控制版本在1.4.10)
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.2.1'
+        classpath 'com.android.tools.build:gradle:8.1.3'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.21'  // (为了使用 kotlin-android-extensions 控制版本在1.6.21)
     }
 }
 
 allprojects {
     repositories {
         google()
-        jcenter()
+        mavenCentral()
+        maven { url "https://jitpack.io" }
         flatDir {
             // 由于Library module中引用了 gif 库的 aar，在多 module 的情况下，
             // 其他的module编译会报错，所以需要在所有工程的repositories
@@ -22,6 +25,6 @@ allprojects {
     }
 }
 
-task clean(type: Delete) {
+tasks.register('clean', Delete) {
     delete rootProject.buildDir
 }
