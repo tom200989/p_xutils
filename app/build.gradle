@@ -46,7 +46,7 @@ dependencies {
     )
     api(// 本文核心架构包
             group: 'com.pxutils.pxutils',
-            name: 'ma_xutils2',
+            name: 'ma_xutils3',
             ext: 'aar',
             version: '1.0.0'
     )
